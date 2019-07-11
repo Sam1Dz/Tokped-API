@@ -40,12 +40,12 @@ exports.create = function (req, res) {
 		html: 'JANGAN MEMBERITAHUKAN KODE RAHASIA INI KE SIAPAPUN termasuk pihak Tokopedia.<br>WASPADA TERHADAP KASUS PENIPUAN! KODE RAHASIA untuk melanjutkan Registrasi: <b><i>' + digit + '</i></b>'
 	}
 
-	if (email === '') {
+	if (email === '') { // If Email is Empty
 		res.json({
 			error: true,
 			message: 'Alamat Email harus di Isi'
 		});
-	}else {
+	}else { // If Email not Empty
 		connection.query(
 			`SELECT COUNT(email) AS total FROM tb_user WHERE email=?`,
 			[email],
@@ -73,7 +73,7 @@ exports.create = function (req, res) {
 								connection.query(
 									`INSERT INTO tb_user SET email=?, password=?, full_name='', address='', img_user=''`,
 									[email, digit],
-									function (err) {
+									function (err, rows) {
 										if (err) {
 											res.json({
 												error: true,
@@ -82,11 +82,64 @@ exports.create = function (req, res) {
 										}else{
 											res.json({
 												error: false,
+												id_user: rows.insertId,
 												message: 'Akun berhasil dibuat'
 											});
 										}
 									}
 								)
+							}
+						});
+					}
+				}
+			}
+		)
+	}
+}
+
+// Check 6 Digit Random Number & Set Token for 1 Hours
+exports.check = function (req, res) {
+	// Initialize input from Body
+	let id_user = req.params.id;
+	let password = req.body.password;
+
+	if (password === '') { // If Password is Empty
+		res.json({
+			error: true,
+			message: '6 Digit Autentikasi harus di Isi'
+		});
+	}else{ // If Password is not Empty
+		connection.query(
+			`SELECT COUNT(password) AS total FROM tb_user WHERE id_user=? AND password=?`,
+			[id_user, password],
+			function (err, rows) {
+				if (err) {
+					res.json({
+						error: true,
+						message: err
+					});
+				}else{
+					let total = Math.ceil(rows[0].total);
+					if (total === 0) { // If Authentication is Not Valid
+						res.json({
+							message: 'Kode Autentikasi Tidak Valid'
+						});
+					}else{ // If Authentication is Valid
+						// Set Password (6 Digit Random Code) to 0
+						connection.query(
+							`UPDATE tb_user SET password=0 WHERE id_user=?`,
+							[id_user], function (err) { if (err) { res.json({ error: true, message: err }); } }
+						)
+
+						// Set JWT Token
+						jwt.sign({id_user}, 'secretKey', { expiresIn: '1h' }, (err, token) => {
+							if (err) {
+								res.json({ error: true });
+							}else{
+								res.json({
+									message: 'Autentikasi Berhasil',
+									token: token
+								});
 							}
 						});
 					}

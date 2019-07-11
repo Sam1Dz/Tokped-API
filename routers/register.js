@@ -9,4 +9,5 @@ module.exports = function (app) {
 
 	// POST Request Goes here
 	app.post('/manual/register', register.create); // Send Email to Register
+	app.post('/manual/register_auth/:id', register.check); // Checking 6 Digit Random Number
 }

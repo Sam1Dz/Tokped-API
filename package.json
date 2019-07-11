@@ -1,6 +1,6 @@
 {
   "name": "tokpedapi",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Tokopedia (Clone) API",
   "main": "server.js",
   "scripts": {
