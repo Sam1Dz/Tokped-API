@@ -6,14 +6,54 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const connection = require('../connect');
 
-// Initialize Sender Email
-const transporter = nodemailer.createTransport({
-	service: 'Gmail',
-	auth: {
-		user: process.env.SENDER_EMAIL,
-		pass: process.env.SENDER_PASS
+// Initialize Google APIs
+const { google } = require('googleapis');
+const OAuth2 = google.auth.OAuth2;
+
+// 6 Digit Random Generator
+const digit = Math.floor(100000 + Math.random() * 900000);
+
+// Initailize to send 6 Digit Random Number via email
+async function sendEmail(email) { // Use Async Javascript Function
+	// Setup OAuth Client
+	const oauth2Client = new OAuth2 (
+		process.env.OAUTH_CLIENT_ID, // ClientID
+		process.env.OAUTH_CLIENT_SECRET, // Client Secret
+		"https://developers.google.com/oauthplayground" // Redirect URL
+	)
+
+	// Set OAuth Credential & Get Access Token
+	oauth2Client.setCredentials({
+		refresh_token: process.env.OAUTH_REFRESH_TOKEN
+	});
+	const tokens = await oauth2Client.refreshAccessToken()
+	const acessToken = tokens.credentials.access_token
+
+	// Initialize Sender Email
+	const transporter = nodemailer.createTransport({
+		service: 'Gmail',
+		auth: {
+			type: "OAuth2",
+			user: process.env.SENDER_EMAIL,
+			clientId: process.env.OAUTH_CLIENT_ID,
+			clientSecret: process.env.OAUTH_CLIENT_SECRET,
+			refreshToken: process.env.OAUTH_REFRESH_TOKEN,
+			accessToken: acessToken
+		}
+	});
+
+	// Initialize Receiver Email
+	const mailOptions = {
+		from: process.env.SENDER_EMAIL,
+		to: email,
+		subject: '6 Digit kode rahasia untuk melanjutkan Registrasi',
+		generateTextFromHTML: true,
+		html: 'JANGAN MEMBERITAHUKAN KODE RAHASIA INI KE SIAPAPUN termasuk pihak Tokopedia.<br>WASPADA TERHADAP KASUS PENIPUAN! KODE RAHASIA untuk melanjutkan Registrasi: <b><i>' + digit + '</i></b>'
 	}
-});
+
+	// Send Email
+	transporter.sendMail(mailOptions, function(err, info){ if (err) {  console.log(err); } });
+}
 
 /* ↓ MIDDLEWARE FUNCTION ↓ */
 
@@ -29,16 +69,6 @@ exports.test = function (req, res) {
 exports.create = function (req, res) {
 	// Initialize input from Body
 	let email = req.body.email;
-	
-	const digit = Math.floor(100000 + Math.random() * 900000); // 6 Digit Random Generator
-	
-	// Initialize Receiver Email
-	const mailOptions = {
-		from: process.env.SENDER_EMAIL,
-		to: email,
-		subject: '6 Digit kode rahasia untuk melanjutkan Registrasi',
-		html: 'JANGAN MEMBERITAHUKAN KODE RAHASIA INI KE SIAPAPUN termasuk pihak Tokopedia.<br>WASPADA TERHADAP KASUS PENIPUAN! KODE RAHASIA untuk melanjutkan Registrasi: <b><i>' + digit + '</i></b>'
-	}
 
 	if (email === '') { // If Email is Empty
 		res.json({ error: true, message: 'Alamat Email harus di Isi' });
@@ -54,30 +84,24 @@ exports.create = function (req, res) {
 					if (total === 1) { // If Email already exists
 						res.json({ message: 'Email Sudah Terdaftar' });
 					}else{ // If Not exists
-						// Send Email & Insert Email + 6 Digit code on Database 
-						transporter.sendMail(mailOptions, function(err, info){
-							if (err) { 
-								res.json({ error: true, message: err });
-							} else {
-								connection.query(
-									`INSERT INTO tb_user SET email=?, password=?, full_name='', address='', img_user=''`,
-									[email, digit],
-									function (err, rows) {
-										if (err) {
-											res.json({ error: true, message: err });
-										} else {
-											res.json({
-												error: false,
-												message: 'Akun berhasil dibuat',
-												data: [{
-													id_user: rows.insertId,
-												}]
-											});
-										}
-									}
-								)
+						sendEmail(email); // Call sendEmail() Function
+						connection.query(
+							`INSERT INTO tb_user SET email=?, password=?, full_name='', address='', img_user=''`,
+							[email, digit],
+							function (err, rows) {
+								if (err) {
+									res.json({ error: true, message: err });
+								} else {
+									res.json({
+										error: false,
+										message: 'Akun berhasil dibuat',
+										data: [{
+											id_user: rows.insertId
+										}]
+									});
+								}
 							}
-						});
+						)
 					}
 				}
 			}
@@ -118,9 +142,10 @@ exports.check = function (req, res) {
 							}else{
 								res.json({
 									message: 'Autentikasi Berhasil',
-									token: token,
 									data: [{
 										id_user: id_user,
+										token: token,
+										expiresIn: 3600
 									}]
 								});
 							}
