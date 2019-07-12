@@ -91,7 +91,7 @@ exports.check = function (req, res) {
 	let id_user = req.params.id;
 	let password = req.body.password;
 
-	if (password === '') { // If Password Empty
+	if (password == '' || password == undefined) { // If Password Empty
 		res.json({ error: true, message: '6 Digit Autentikasi harus di Isi' });
 	} else { // If Password is not Empty
 		connection.query(
