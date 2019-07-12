@@ -8,6 +8,6 @@ module.exports = function (app) {
 	app.get('/manual/api_register_test', register.test);
 
 	// POST Request Goes here
-	app.post('/manual/register', register.create); // Send Email to Register
+	app.post('/manual/register', register.create); // Register Function
 	app.post('/manual/register_auth/:id', register.check); // Checking 6 Digit Random Number
 }
