@@ -16,9 +16,11 @@ app.use(bodyParser.json());
 // Initialize All Router
 const register = require('./routers/register');
 const login = require('./routers/login');
+const user = require('./routers/user');
 
 register(app);
 login(app);
+user(app);
 
 // Server Start at PORT 5000
 app.listen(5000, () => console.log('Server started at PORT "5000" [' + time().format('DD/MM/YYYY HH:mm:ss') +' UTC+7]'));

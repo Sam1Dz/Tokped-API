@@ -1,7 +1,7 @@
 'use strict'
 
 module.exports = function (app) {
-	// Initialize All Controller (Middleware)
+	// Initialize register Controller (Middleware)
 	const register = require('../controller/register');
 
 	// GET Request (Test the API Response)

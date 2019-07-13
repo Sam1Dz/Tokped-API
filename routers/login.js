@@ -1,10 +1,10 @@
 'use strict'
 
 module.exports = function (app) {
-	// Initialize All Controller (Middleware)
+	// Initialize login Controller (Middleware)
 	const login = require('../controller/login');
 
-	// GET Requiest (Test the API Response)
+	// GET Request (Test the API Response)
 	app.get('/manual/api_login_test', login.test);
 
 	// POST Request Goes Here
